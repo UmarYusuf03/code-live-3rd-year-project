@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace CodeLive.Api.Models;
 
 public static class Roles
@@ -21,5 +23,12 @@ public class Room
 {
     public required string RoomId { get; init; }
     public bool GlobalEdit { get; set; }
-    public System.Collections.Concurrent.ConcurrentDictionary<string, User> Users { get; } = new();
+    public ConcurrentDictionary<string, User> Users { get; } = new();
 }
+
+public record CodeExecutionRequest(string Code, string Language);
+
+public record CodeExecutionResponse(string Output, bool IsError, string Status = "");
+
+public record RoomStateDto(string RoomId, bool GlobalEdit, IReadOnlyList<User> Participants, User Self);
+
