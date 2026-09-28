@@ -14,6 +14,16 @@ builder.Services.AddCors(o => o.AddPolicy(CorsPolicy, p => p
 
 builder.Services.AddSingleton<IRoomService, InMemoryRoomService>();
 
+builder.Services.Configure<Judge0Options>(builder.Configuration.GetSection("Judge0"));
+builder.Services.AddHttpClient<ICodeExecutionService, Judge0ExecutionService>((sp, http) =>
+{
+    var opt = builder.Configuration.GetSection("Judge0").Get<Judge0Options>() ?? new();
+    http.BaseAddress = new Uri(opt.BaseUrl.TrimEnd('/') + "/");
+    http.Timeout = TimeSpan.FromSeconds(opt.TimeoutSeconds);
+    if (!string.IsNullOrWhiteSpace(opt.ApiKey))
+        http.DefaultRequestHeaders.Add("X-Auth-Token", opt.ApiKey);
+});
+
 var app = builder.Build();
 app.UseCors(CorsPolicy);
 app.MapGet("/", () => Results.Ok(new { name = "CodeLive API", status = "ok" }));
