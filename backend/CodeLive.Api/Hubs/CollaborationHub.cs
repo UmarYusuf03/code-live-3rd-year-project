@@ -29,4 +29,26 @@ public class CollaborationHub(IRoomService rooms, ICodeExecutionService executor
             globalEdit = room.GlobalEdit
         };
     }
+
+    public async Task ToggleGlobalEdit(string roomId, bool enabled)
+    {
+        var caller = rooms.GetUser(roomId, Context.ConnectionId);
+        if (caller?.Role != Roles.Lecturer) return;
+
+        rooms.SetGlobalEdit(roomId, enabled);
+        await Clients.Group(roomId).SendAsync("GlobalEditChanged", enabled);
+    }
+
+    public async Task SetUserEdit(string roomId, string targetConnectionId, bool canEdit)
+    {
+        var caller = rooms.GetUser(roomId, Context.ConnectionId);
+        if (caller?.Role != Roles.Lecturer) return;
+
+        var updated = rooms.SetUserEdit(roomId, targetConnectionId, canEdit);
+        if (updated is not null)
+        {
+            await Clients.Client(targetConnectionId).SendAsync("PermissionChanged", canEdit);
+            await Clients.Group(roomId).SendAsync("ParticipantsUpdated", rooms.GetParticipants(roomId));
+        }
+    }
 }
