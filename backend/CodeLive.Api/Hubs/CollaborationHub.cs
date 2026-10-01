@@ -6,6 +6,38 @@ namespace CodeLive.Api.Hubs;
 
 public class CollaborationHub(IRoomService rooms, ICodeExecutionService executor, ILogger<CollaborationHub> logger) : Hub
 {
+    public async Task ToggleGlobalEdit(string roomId, bool enabled)
+    {
+        roomId = (roomId ?? "").Trim().ToLowerInvariant();
+        EnsureLecturer(roomId);
+        rooms.SetGlobalEdit(roomId, enabled);
+        await Clients.Group(roomId).SendAsync("GlobalEditChanged", enabled);
+    }
+
+    public Task GrantEdit(string roomId, string targetConnectionId) => SetEdit(roomId, targetConnectionId, true);
+
+    public Task RevokeEdit(string roomId, string targetConnectionId) => SetEdit(roomId, targetConnectionId, false);
+
+    private async Task SetEdit(string roomId, string targetConnectionId, bool canEdit)
+    {
+        roomId = (roomId ?? "").Trim().ToLowerInvariant();
+        EnsureLecturer(roomId);
+        var target = rooms.SetUserEdit(roomId, targetConnectionId, canEdit)
+                     ?? throw new HubException("Participant not found.");
+        if (target.Role == Roles.Lecturer && !canEdit) { target.CanEdit = true; throw new HubException("Cannot revoke a lecturer."); }
+
+        await Clients.Client(targetConnectionId).SendAsync("EditPermissionChanged", canEdit);
+        await Clients.Group(roomId).SendAsync("ParticipantsUpdated", rooms.GetParticipants(roomId));
+    }
+
+    private User EnsureLecturer(string roomId)
+    {
+        var user = rooms.GetUser(roomId, Context.ConnectionId);
+        if (user is null || user.Role != Roles.Lecturer)
+            throw new HubException("Only the lecturer can perform this action.");
+        return user;
+    }
+
     public async Task JoinRoom(string roomId, string name, string role)
     {
         roomId = (roomId ?? "").Trim().ToLowerInvariant();
