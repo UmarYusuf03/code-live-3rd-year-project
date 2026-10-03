@@ -1,3 +1,4 @@
+using CodeLive.Api.Hubs;
 using CodeLive.Api.Models;
 using CodeLive.Api.Services;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,12 @@ builder.Services.AddCors(o => o.AddPolicy(CorsPolicy, p => p
     .AllowAnyMethod()
     .AllowCredentials()));
 
+builder.Services.AddSignalR(o =>
+{
+    o.MaximumReceiveMessageSize = 256 * 1024;
+    o.EnableDetailedErrors = builder.Environment.IsDevelopment();
+});
+
 builder.Services.AddSingleton<IRoomService, InMemoryRoomService>();
 
 builder.Services.Configure<Judge0Options>(builder.Configuration.GetSection("Judge0"));
@@ -27,6 +34,8 @@ builder.Services.AddHttpClient<ICodeExecutionService, Judge0ExecutionService>((s
 
 var app = builder.Build();
 app.UseCors(CorsPolicy);
+
+app.MapHub<CollaborationHub>("/hubs/collaboration");
 app.MapGet("/", () => Results.Ok(new { name = "CodeLive API", status = "ok" }));
 app.MapPost("/api/execute", (CodeExecutionRequest req, ICodeExecutionService exec, CancellationToken ct) => exec.ExecuteAsync(req, ct));
 
