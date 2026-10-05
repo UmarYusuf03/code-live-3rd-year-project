@@ -1,4 +1,5 @@
 using CodeLive.Api.Hubs;
+using CodeLive.Api.Middleware;
 using CodeLive.Api.Models;
 using CodeLive.Api.Services;
 using Microsoft.Extensions.Options;
@@ -33,10 +34,17 @@ builder.Services.AddHttpClient<ICodeExecutionService, Judge0ExecutionService>((s
 });
 
 var app = builder.Build();
+
 app.UseCors(CorsPolicy);
+app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
+
+// Yjs CRDT relay: ws://host/ws/yjs?room={roomId}
+app.Map("/ws/yjs", ws => ws.UseMiddleware<YjsWebSocketMiddleware>());
 
 app.MapHub<CollaborationHub>("/hubs/collaboration");
+
 app.MapGet("/", () => Results.Ok(new { name = "CodeLive API", status = "ok" }));
 app.MapPost("/api/execute", (CodeExecutionRequest req, ICodeExecutionService exec, CancellationToken ct) => exec.ExecuteAsync(req, ct));
 
 app.Run();
+
