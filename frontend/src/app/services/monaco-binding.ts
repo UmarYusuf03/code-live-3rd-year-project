@@ -9,7 +9,7 @@ export class MonacoBinding {
   constructor(ytext: Y.Text, monacoModel: monaco.editor.ITextModel) {
     this.ytext = ytext;
     this.monacoModel = monacoModel;
-    if (this.ytext.length > 0) {
+    if (this.ytext.length > 0 && this.monacoModel.getValue() !== this.ytext.toString()) {
       this.monacoModel.setValue(this.ytext.toString());
     }
 
@@ -18,10 +18,30 @@ export class MonacoBinding {
   }
 
   private handleYTextChange = (event: Y.YTextEvent) => {
-    if (this.isApplyingRemote) return;
+    if (event.transaction.origin === this) return;
     this.isApplyingRemote = true;
     try {
-      this.monacoModel.setValue(this.ytext.toString());
+      let index = 0;
+      event.delta.forEach((op) => {
+        if (op.retain !== undefined) {
+          index += op.retain;
+        } else if (op.delete !== undefined) {
+          const pos = this.monacoModel.getPositionAt(index);
+          const endPos = this.monacoModel.getPositionAt(index + op.delete);
+          this.monacoModel.applyEdits([{
+            range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: endPos.lineNumber, endColumn: endPos.column },
+            text: ""
+          }]);
+        } else if (op.insert !== undefined) {
+          const pos = this.monacoModel.getPositionAt(index);
+          const text = typeof op.insert === "string" ? op.insert : "";
+          this.monacoModel.applyEdits([{
+            range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+            text
+          }]);
+          index += text.length;
+        }
+      });
     } finally {
       this.isApplyingRemote = false;
     }
@@ -32,8 +52,12 @@ export class MonacoBinding {
     const doc = this.ytext.doc;
     if (!doc) return;
     doc.transact(() => {
-      this.ytext.delete(0, this.ytext.length);
-      this.ytext.insert(0, this.monacoModel.getValue());
+      for (const change of e.changes) {
+        this.ytext.delete(change.rangeOffset, change.rangeLength);
+        if (change.text) {
+          this.ytext.insert(change.rangeOffset, change.text);
+        }
+      }
     }, this);
   };
 
