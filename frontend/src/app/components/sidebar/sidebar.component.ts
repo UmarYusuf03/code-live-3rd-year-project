@@ -40,21 +40,7 @@ import { Participant } from "../../models";
                 }
               </div>
             </div>
-            @if (signalR.isLecturer() && p.role === "student") {
-              @if (p.canEdit) {
-                <button
-                  class="sm danger"
-                  (click)="revoke(p)"
-                  title="Revoke edit rights"
-                >
-                  Revoke
-                </button>
-              } @else {
-                <button class="sm" (click)="grant(p)" title="Grant edit rights">
-                  Grant
-                </button>
-              }
-            }
+<!-- permission buttons placeholder -->
           </li>
         } @empty {
           <li class="empty">Connecting…</li>
