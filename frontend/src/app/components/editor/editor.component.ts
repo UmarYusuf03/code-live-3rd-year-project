@@ -125,7 +125,10 @@ export class EditorComponent implements AfterViewInit, OnDestroy {
       padding: { top: 12 },
     });
 
-// run command will be bound
+    this.editor.addCommand(
+      this.monaco.KeyMod.CtrlCmd | this.monaco.KeyCode.Enter,
+      () => this.workspace.run(),
+    );
 
     this.yjs.bindEditor(this.editor, this.monaco);
     this.workspace.editor = this.editor;
