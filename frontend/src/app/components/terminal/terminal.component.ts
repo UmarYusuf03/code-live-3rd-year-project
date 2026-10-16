@@ -38,7 +38,11 @@ const C = {
           <span class="status" [class]="s.cls">{{ s.text }}</span>
         }
         <div class="spacer"></div>
-<!-- share terminal button will be added -->
+        @if (signalR.isLecturer()) {
+          <button class="sm" (click)="share()" [disabled]="!hasOutput()">
+            {{ shared() ? "✓ Shared" : "📡 Share Terminal" }}
+          </button>
+        }
         <button class="sm ghost" (click)="clear()">Clear</button>
       </div>
       <div class="term" #host></div>
