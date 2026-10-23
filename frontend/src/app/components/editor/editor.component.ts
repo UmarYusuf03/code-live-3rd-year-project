@@ -130,6 +130,11 @@ export class EditorComponent implements AfterViewInit, OnDestroy {
       () => this.workspace.run(),
     );
 
+    const model = this.editor.getModel();
+    if (model) {
+      model.setEOL(this.monaco.editor.EndOfLineSequence.LF);
+    }
+
     this.yjs.bindEditor(this.editor, this.monaco);
     this.workspace.editor = this.editor;
     this.loading.set(false);
